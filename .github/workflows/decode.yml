@@ -1,0 +1,72 @@
+name: decode files
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */1 * * *'
+
+env:
+  PREFIX: decode
+  ACTOR: ${{ secrets.ACTOR }}
+
+jobs:
+  build:
+    name: push decode file
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4.1.6
+      - name: Compare Files
+        run: |
+          ORIGIN_FILE[0]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/1CFwarp.sh
+          ORIGIN_FILE[1]=https://gitlab.com/$ACTOR/sing-box-yg/-/raw/main/1sb.sh
+          ORIGIN_FILE[2]=https://gitlab.com/$ACTOR/x-ui-yg/-/raw/main/1install.sh
+
+          for FULL_PATH in ${ORIGIN_FILE[*]}; do
+            unset FILE NOW LATEST
+            FILE=$(basename $FULL_PATH)
+
+            if [ -s $FILE ]; then
+              NOW=$(md5sum $FILE | cut -d " " -f1)
+            fi
+
+            LATEST=$(wget -qO- $FULL_PATH | md5sum | cut -d " " -f1)
+            echo " $FILE now:    $NOW "
+            echo " $FILE latest: $LATEST "
+            if [ "$LATEST" != "$NOW" ]; then
+              IS_NEW=isNew
+              if [ ! -x $(type -p bunzip2) ]; then
+                sudo apt-get install -y bzip2
+              fi
+              wget -O $FILE $FULL_PATH
+              sed '1,/fi; exit \$res/d' $FILE | bunzip2 > ${{ env.PREFIX }}-$FILE
+              sed -i 's/[[:blank:]]*$//' ${{ env.PREFIX }}-$FILE
+              if [ ! -x shfmt ]; then
+                wget -O shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64
+                chmod +x shfmt
+              fi
+              ./shfmt -l -w ${{ env.PREFIX }}-$FILE
+              sed -i "s#$FULL_PATH#https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/${{ env.PREFIX }}-$FILE#" ${{ env.PREFIX }}-$FILE
+            fi
+          done
+
+          if [ "$IS_NEW" = 'isNew' ]; then
+            rm -f shfmt
+            echo "DATE=$(date "+%Y/%m/%d %H:%M:%S")" >> $GITHUB_ENV
+          fi
+
+      - name: Upload to repository
+        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        if: ${{ env.DATE != '' }}
+        with:
+          commit_message: Decode files by Github Actions, ${{ env.DATE }}
+
+      - name: Delete old workflow runs
+        uses: Mattraks/delete-workflow-runs@v2.0.6
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 0
+          delete_run_by_conclusion_pattern: "cancelled, skipped, success"
