@@ -21,7 +21,7 @@ jobs:
         run: |
           ORIGIN_FILE[0]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/1CFwarp.sh
           ORIGIN_FILE[1]=https://gitlab.com/$ACTOR/sing-box-yg/-/raw/main/1sb.sh
-          ORIGIN_FILE[2]=https://gitlab.com/$ACTOR/x-ui-yg/-/raw/main/1install.sh
+          ORIGIN_FILE[2]=https://gitlab.com/$ACTOR/x-ui-yg/-/raw/main/install.sh
 
           for FULL_PATH in ${ORIGIN_FILE[*]}; do
             unset FILE NOW LATEST
@@ -40,14 +40,22 @@ jobs:
                 sudo apt-get install -y bzip2
               fi
               wget -O $FILE $FULL_PATH
-              sed '1,/fi; exit \$res/d' $FILE | bunzip2 > ${{ env.PREFIX }}-$FILE
-              sed -i 's/[[:blank:]]*$//' ${{ env.PREFIX }}-$FILE
+              if grep -q 'FajarKim'; then
+                IS_ENCODE=isEncode
+                sed '1,/fi; exit \$res/d' $FILE | bunzip2 > ${{ env.PREFIX }}-$FILE
+                sed -i 's/[[:blank:]]*$//' ${{ env.PREFIX }}-$FILE
+              else
+                IS_ENCODE=noEncode
+                cp $FILE ${{ env.PREFIX }}-$FILE
+              fi
               if [ ! -x shfmt ]; then
                 wget -O shfmt https://github.com/mvdan/sh/releases/download/v3.8.0/shfmt_v3.8.0_linux_amd64
                 chmod +x shfmt
               fi
               ./shfmt -l -w ${{ env.PREFIX }}-$FILE
-              sed -i "s#$FULL_PATH#https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/${{ env.PREFIX }}-$FILE#" ${{ env.PREFIX }}-$FILE
+              if [ "$IS_ENCODE" = 'isEncode' ]; then
+                sed -i "s#$FULL_PATH#https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/${{ env.PREFIX }}-$FILE#" ${{ env.PREFIX }}-$FILE
+              fi
             fi
           done
 
