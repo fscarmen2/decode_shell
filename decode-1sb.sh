@@ -3026,7 +3026,7 @@ cfargoym() {
 		fi
 		echo
 		if [[ -n "${argotoken}" && -n "${argoym}" ]]; then
-			nohup /etc/s-box/cloudflared tunnel --edge-ip-version auto run --token ${argotoken} >/dev/null 2>&1 &
+			nohup setsid /etc/s-box/cloudflared tunnel --edge-ip-version auto run --token ${argotoken} >/dev/null 2>&1 &
 			echo "$!" >/etc/s-box/sbargoympid.log
 			sleep 20
 		fi
@@ -3034,7 +3034,7 @@ cfargoym() {
 		echo ${argotoken} >/etc/s-box/sbargotoken.log
 		crontab -l >/tmp/crontab.tmp
 		sed -i '/sbargoympid/d' /tmp/crontab.tmp
-		echo '@reboot /bin/bash -c "nohup /etc/s-box/cloudflared tunnel --edge-ip-version auto run --token $(cat /etc/s-box/sbargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargoympid.log"' >>/tmp/crontab.tmp
+		echo '@reboot /bin/bash -c "nohup setsid /etc/s-box/cloudflared tunnel --edge-ip-version auto run --token $(cat /etc/s-box/sbargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargoympid.log"' >>/tmp/crontab.tmp
 		crontab /tmp/crontab.tmp
 		rm /tmp/crontab.tmp
 		argo=$(cat /etc/s-box/sbargoym.log 2>/dev/null)
@@ -3716,24 +3716,7 @@ EOF
 			./gitpush.sh "git push -f origin main${gitlab_ml}" cat /etc/s-box/gitlabtoken.txt >/dev/null 2>&1
 			echo "https://gitlab.com/api/v4/projects/${userid}%2F${project}/repository/files/sing_box_client.json/raw?ref=${git_sk}&private_token=${token}" >/etc/s-box/sing_box_gitlab.txt
 			echo "https://gitlab.com/api/v4/projects/${userid}%2F${project}/repository/files/clash_meta_client.yaml/raw?ref=${git_sk}&private_token=${token}" >/etc/s-box/clash_meta_gitlab.txt
-			green "当前Sing-box节点已更新并推送"
-			green "Sing-box订阅链接如下："
-			blue "https://gitlab.com/api/v4/projects/${userid}%2F${project}/repository/files/sing_box_client.json/raw?ref=${git_sk}&private_token=${token}"
-			echo
-			green "Sing-box订阅链接二维码如下："
-			qrencode -o - -t ANSIUTF8 "$(cat /etc/s-box/sing_box_gitlab.txt)"
-			echo
-			echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-			echo
-			green "当前Clash-meta节点配置已更新并推送"
-			green "Clash-meta订阅链接如下："
-			blue "https://gitlab.com/api/v4/projects/${userid}%2F${project}/repository/files/clash_meta_client.yaml/raw?ref=${git_sk}&private_token=${token}"
-			echo
-			green "Clash-meta订阅链接二维码如下："
-			qrencode -o - -t ANSIUTF8 "$(cat /etc/s-box/clash_meta_gitlab.txt)"
-			echo
-			yellow "可以在网页上输入订阅链接查看配置内容，如果无配置内容，请自检Gitlab相关设置并重置"
-			echo
+			clsbshow
 		else
 			yellow "设置Gitlab订阅链接失败，请反馈"
 		fi
@@ -3755,28 +3738,32 @@ gitlabsubgo() {
 		git commit -m "commit_add_$(date +"%F %T")" >/dev/null 2>&1
 		chmod +x gitpush.sh
 		./gitpush.sh "git push -f origin main${gitlab_ml}" cat /etc/s-box/gitlabtoken.txt >/dev/null 2>&1
-		green "当前Sing-box节点已更新并推送"
-		green "Sing-box订阅链接如下："
-		blue "$(cat /etc/s-box/sing_box_gitlab.txt 2>/dev/null)"
-		echo
-		green "Sing-box订阅链接二维码如下："
-		qrencode -o - -t ANSIUTF8 "$(cat /etc/s-box/sing_box_gitlab.txt)"
-		echo
-		echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-		echo
-		green "当前Clash-meta节点配置已更新并推送"
-		green "Clash-meta订阅链接如下："
-		blue "$(cat /etc/s-box/clash_meta_gitlab.txt 2>/dev/null)"
-		echo
-		green "Clash-meta订阅链接二维码如下："
-		qrencode -o - -t ANSIUTF8 "$(cat /etc/s-box/clash_meta_gitlab.txt)"
-		echo
-		yellow "可以在网页上输入订阅链接查看配置内容，如果无配置内容，请自检Gitlab相关设置并重置"
-		echo
+		clsbshow
 	else
 		yellow "未设置Gitlab订阅链接"
 	fi
 	cd
+}
+
+clsbshow() {
+	green "当前Sing-box节点已更新并推送"
+	green "Sing-box订阅链接如下："
+	blue "$(cat /etc/s-box/sing_box_gitlab.txt 2>/dev/null)"
+	echo
+	green "Sing-box订阅链接二维码如下："
+	qrencode -o - -t ANSIUTF8 "$(cat /etc/s-box/sing_box_gitlab.txt 2>/dev/null)"
+	echo
+	echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo
+	green "当前Clash-meta节点配置已更新并推送"
+	green "Clash-meta订阅链接如下："
+	blue "$(cat /etc/s-box/clash_meta_gitlab.txt 2>/dev/null)"
+	echo
+	green "Clash-meta订阅链接二维码如下："
+	qrencode -o - -t ANSIUTF8 "$(cat /etc/s-box/clash_meta_gitlab.txt 2>/dev/null)"
+	echo
+	yellow "可以在网页上输入订阅链接查看配置内容，如果无配置内容，请自检Gitlab相关设置并重置"
+	echo
 }
 
 warpwg() {
