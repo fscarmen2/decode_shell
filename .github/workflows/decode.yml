@@ -40,7 +40,7 @@ jobs:
                 sudo apt-get install -y bzip2
               fi
               wget -O $FILE $FULL_PATH
-              if grep -q 'FajarKim'; then
+              if grep -q 'FajarKim' $FILE; then
                 IS_ENCODE=isEncode
                 sed '1,/fi; exit \$res/d' $FILE | bunzip2 > ${{ env.PREFIX }}-$FILE
                 sed -i 's/[[:blank:]]*$//' ${{ env.PREFIX }}-$FILE
