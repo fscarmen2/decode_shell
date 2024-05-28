@@ -2503,8 +2503,6 @@ proxy-groups:
     - tuic5-$hostname
     - vmess-tls-argo固定-$hostname
     - vmess-argo固定-$hostname
-    - vmess-tls-argo临时-$hostname
-    - vmess-argo临时-$hostname
 rules:
   - GEOIP,LAN,DIRECT
   - GEOIP,CN,DIRECT
