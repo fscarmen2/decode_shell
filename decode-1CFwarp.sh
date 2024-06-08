@@ -568,17 +568,17 @@ chatgpt6() {
 	gpt2=$(curl -s6 https://android.chat.openai.com 2>&1)
 }
 checkgpt() {
-	if [[ $gpt1 == *location* ]]; then
-		if [[ $gpt2 == *VPN* ]]; then
-			chat='遗憾，当前IP仅解锁ChatGPT网页，未解锁客户端'
-		elif [[ $gpt2 == *Request* ]]; then
-			chat='恭喜，当前IP完整解锁ChatGPT (网页+客户端)'
-		else
-			chat='杯具，当前IP无法解锁ChatGPT服务'
-		fi
+	#if [[ $gpt1 == *location* ]]; then
+	if [[ $gpt2 == *VPN* ]]; then
+		chat='遗憾，当前IP仅解锁ChatGPT网页，未解锁客户端'
+	elif [[ $gpt2 == *Request* ]]; then
+		chat='恭喜，当前IP完整解锁ChatGPT (网页+客户端)'
 	else
 		chat='杯具，当前IP无法解锁ChatGPT服务'
 	fi
+	#else
+	#chat='杯具，当前IP无法解锁ChatGPT服务'
+	#fi
 }
 
 ShowSOCKS5() {
