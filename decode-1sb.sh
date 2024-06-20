@@ -3024,7 +3024,7 @@ cfargoym() {
 		fi
 		echo
 		if [[ -n "${argotoken}" && -n "${argoym}" ]]; then
-			nohup setsid /etc/s-box/cloudflared tunnel --edge-ip-version auto run --token ${argotoken} --no-autoupdate >/dev/null 2>&1 &
+			nohup setsid /etc/s-box/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token ${argotoken} >/dev/null 2>&1 &
 			echo "$!" >/etc/s-box/sbargoympid.log
 			sleep 20
 		fi
@@ -3032,7 +3032,7 @@ cfargoym() {
 		echo ${argotoken} >/etc/s-box/sbargotoken.log
 		crontab -l >/tmp/crontab.tmp
 		sed -i '/sbargoympid/d' /tmp/crontab.tmp
-		echo '@reboot /bin/bash -c "nohup setsid /etc/s-box/cloudflared tunnel --edge-ip-version auto run --token $(cat /etc/s-box/sbargotoken.log 2>/dev/null) --no-autoupdate >/dev/null 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargoympid.log"' >>/tmp/crontab.tmp
+		echo '@reboot /bin/bash -c "nohup setsid /etc/s-box/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token $(cat /etc/s-box/sbargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargoympid.log"' >>/tmp/crontab.tmp
 		crontab /tmp/crontab.tmp
 		rm /tmp/crontab.tmp
 		argo=$(cat /etc/s-box/sbargoym.log 2>/dev/null)
