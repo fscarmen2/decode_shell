@@ -687,8 +687,8 @@ SOCKS5ins() {
 	fi
 	if [[ $release != Centos ]]; then
 		apt install net-tools -y
-		curl https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-		echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] http://pkg.cloudflareclient.com/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
+		curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+		echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] http://pkg.cloudflareclient.com/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
 		apt update
 		apt install cloudflare-warp -y
 	fi
@@ -1419,7 +1419,7 @@ EOF
 		yellow " 进入脚本快捷方式：cf"
 		white " ================================================================="
 		green "  1. 方案一：安装/切换WARP-GO"
-		[[ $cpu != amd64* ]] && red "  2. 方案二：安装Socks5-WARP（仅支持amd64架构，当前方案二不可用）" || green "  2. 方案二：安装Socks5-WARP"
+		green "  2. 方案二：安装Socks5-WARP"
 		green "  3. 方案三：生成WARP-Wireguard配置文件、二维码"
 		green "  4. 卸载WARP"
 		white " -----------------------------------------------------------------"
@@ -2039,7 +2039,7 @@ ONEWGCFWARP() {
 		yellow " 进入脚本快捷方式：cf"
 		white " ================================================================="
 		green "  1. 方案一：安装/切换WGCF-WARP"
-		[[ $cpu != amd64* ]] && red "  2. 方案二：安装Socks5-WARP（仅支持amd64架构，当前方案二不可用）" || green "  2. 方案二：安装Socks5-WARP"
+		green "  2. 方案二：安装Socks5-WARP"
 		green "  3. 方案三：生成WARP-Wireguard配置文件、二维码"
 		green "  4. 卸载WARP"
 		white " -----------------------------------------------------------------"
