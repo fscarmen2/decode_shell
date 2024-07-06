@@ -22,6 +22,10 @@ jobs:
           ORIGIN_FILE[0]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/1CFwarp.sh
           ORIGIN_FILE[1]=https://gitlab.com/$ACTOR/sing-box-yg/-/raw/main/1sb.sh
           ORIGIN_FILE[2]=https://gitlab.com/$ACTOR/x-ui-yg/-/raw/main/install.sh
+          ORIGIN_FILE[3]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/point/acwarp.sh
+          ORIGIN_FILE[4]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/point/2cfip.sh
+          ORIGIN_FILE[5]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/point/2endip.sh
+          
 
           for FULL_PATH in ${ORIGIN_FILE[*]}; do
             unset FILE NOW LATEST
