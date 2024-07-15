@@ -16,6 +16,8 @@ readp() { read -p "$(yellow "$1")" $2; }
 #[[ -e /etc/hosts ]] && grep -qE '^ *172.65.251.78 gitlab.com' /etc/hosts || echo -e '\n172.65.251.78 gitlab.com' >> /etc/hosts
 if [[ -f /etc/redhat-release ]]; then
 	release="Centos"
+elif cat /etc/issue | grep -q -E -i "alpine"; then
+	release="alpine"
 elif cat /etc/issue | grep -q -E -i "debian"; then
 	release="Debian"
 elif cat /etc/issue | grep -q -E -i "ubuntu"; then
@@ -33,11 +35,12 @@ else
 fi
 vsid=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 op=$(cat /etc/redhat-release 2>/dev/null || cat /etc/os-release 2>/dev/null | grep -i pretty_name | cut -d \" -f2)
-if [[ $(echo "$op" | grep -i -E "arch|alpine") ]]; then
+#if [[ $(echo "$op" | grep -i -E "arch|alpine") ]]; then
+if [[ $(echo "$op" | grep -i -E "arch") ]]; then
 	red "脚本不支持当前的 $op 系统，请选择使用Ubuntu,Debian,Centos系统。" && exit
 fi
 version=$(uname -r | cut -d "-" -f1)
-vi=$(systemd-detect-virt 2>/dev/null)
+[[ -z $(systemd-detect-virt 2>/dev/null) ]] && vi=$(virt-what 2>/dev/null) || vi=$(systemd-detect-virt 2>/dev/null)
 bit=$(uname -m)
 if [[ $bit = "aarch64" ]]; then
 	cpu="arm64"
@@ -58,54 +61,61 @@ hostname=$(hostname)
 
 if [ ! -f sbyg_update ]; then
 	green "首次安装Sing-box-yg脚本必要的依赖……"
-	if [[ $release = Centos && ${vsid} =~ 8 ]]; then
-		cd /etc/yum.repos.d/ && mkdir backup && mv *repo backup/
-		curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo
-		sed -i -e "s|mirrors.cloud.aliyuncs.com|mirrors.aliyun.com|g " /etc/yum.repos.d/CentOS-*
-		sed -i -e "s|releasever|releasever-stream|g" /etc/yum.repos.d/CentOS-*
-		yum clean all && yum makecache
-		cd
-	fi
-	if [ -x "$(command -v apt-get)" ]; then
-		apt update -y
-		apt install jq iptables-persistent -y
-	elif [ -x "$(command -v yum)" ]; then
-		yum update -y && yum install epel-release -y
-		yum install jq -y
-	elif [ -x "$(command -v dnf)" ]; then
-		dnf update -y
-		dnf install jq -y
-	fi
-	if [ -x "$(command -v yum)" ] || [ -x "$(command -v dnf)" ]; then
-		if [ -x "$(command -v yum)" ]; then
-			yum install -y cronie iptables-services
-		elif [ -x "$(command -v dnf)" ]; then
-			dnf install -y cronie iptables-services
+	if [[ x"${release}" == x"alpine" ]]; then
+		apk update
+		apk add wget curl tar jq tzdata openssl expect git socat iproute2 iptables
+		apk add virt-what
+		apk add qrencode
+	else
+		if [[ $release = Centos && ${vsid} =~ 8 ]]; then
+			cd /etc/yum.repos.d/ && mkdir backup && mv *repo backup/
+			curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-8.repo
+			sed -i -e "s|mirrors.cloud.aliyuncs.com|mirrors.aliyun.com|g " /etc/yum.repos.d/CentOS-*
+			sed -i -e "s|releasever|releasever-stream|g" /etc/yum.repos.d/CentOS-*
+			yum clean all && yum makecache
+			cd
 		fi
-		systemctl enable iptables >/dev/null 2>&1
-		systemctl start iptables >/dev/null 2>&1
-	fi
-	if [[ -z $vi ]]; then
-		apt install iputils-ping iproute2 systemctl -y
+		if [ -x "$(command -v apt-get)" ]; then
+			apt update -y
+			apt install jq iptables-persistent -y
+		elif [ -x "$(command -v yum)" ]; then
+			yum update -y && yum install epel-release -y
+			yum install jq -y
+		elif [ -x "$(command -v dnf)" ]; then
+			dnf update -y
+			dnf install jq -y
+		fi
+		if [ -x "$(command -v yum)" ] || [ -x "$(command -v dnf)" ]; then
+			if [ -x "$(command -v yum)" ]; then
+				yum install -y cronie iptables-services
+			elif [ -x "$(command -v dnf)" ]; then
+				dnf install -y cronie iptables-services
+			fi
+			systemctl enable iptables >/dev/null 2>&1
+			systemctl start iptables >/dev/null 2>&1
+		fi
+		if [[ -z $vi ]]; then
+			apt install iputils-ping iproute2 systemctl -y
+		fi
+
+		packages=("curl" "openssl" "iptables" "tar" "expect" "wget" "qrencode" "git" "cron")
+		inspackages=("curl" "openssl" "iptables" "tar" "expect" "wget" "qrencode" "git" "cron")
+		for i in "${!packages[@]}"; do
+			package="${packages[$i]}"
+			inspackage="${inspackages[$i]}"
+			if ! command -v "$package" &>/dev/null; then
+				if [ -x "$(command -v apt-get)" ]; then
+					apt-get install -y "$inspackage"
+				elif [ -x "$(command -v yum)" ]; then
+					yum install -y "$inspackage"
+				elif [ -x "$(command -v dnf)" ]; then
+					dnf install -y "$inspackage"
+				fi
+			fi
+		done
 	fi
 	touch sbyg_update
 fi
-
-packages=("curl" "openssl" "iptables" "tar" "expect" "wget" "qrencode" "git" "cron")
-inspackages=("curl" "openssl" "iptables" "tar" "expect" "wget" "qrencode" "git" "cron")
-for i in "${!packages[@]}"; do
-	package="${packages[$i]}"
-	inspackage="${inspackages[$i]}"
-	if ! command -v "$package" &>/dev/null; then
-		if [ -x "$(command -v apt-get)" ]; then
-			apt-get install -y "$inspackage"
-		elif [ -x "$(command -v yum)" ]; then
-			yum install -y "$inspackage"
-		elif [ -x "$(command -v dnf)" ]; then
-			dnf install -y "$inspackage"
-		fi
-	fi
-done
 
 if [[ $vi = openvz ]]; then
 	TUN=$(cat /dev/net/tun 2>&1)
@@ -635,7 +645,18 @@ EOF
 }
 
 sbservice() {
-	cat >/etc/systemd/system/sing-box.service <<EOF
+	if [[ x"${release}" == x"alpine" ]]; then
+		echo '#!/sbin/openrc-run
+description="sing-box service"
+command="/etc/s-box/sing-box"
+command_args="run -c /etc/s-box/sb.json"
+command_background=true
+pidfile="/var/run/sing-box.pid"' >/etc/init.d/sing-box
+		chmod +x /etc/init.d/sing-box
+		rc-update add sing-box default
+		rc-service sing-box start
+	else
+		cat >/etc/systemd/system/sing-box.service <<EOF
 [Unit]
 After=network.target nss-lookup.target
 [Service]
@@ -651,10 +672,11 @@ LimitNOFILE=infinity
 [Install]
 WantedBy=multi-user.target
 EOF
-	systemctl daemon-reload
-	systemctl enable sing-box >/dev/null 2>&1
-	systemctl start sing-box
-	systemctl restart sing-box
+		systemctl daemon-reload
+		systemctl enable sing-box >/dev/null 2>&1
+		systemctl start sing-box
+		systemctl restart sing-box
+	fi
 }
 
 ipuuid() {
@@ -3161,7 +3183,7 @@ changeym() {
 		c=$(cat /etc/s-box/vl_reality.txt | cut -d'=' -f5 | cut -d'&' -f1)
 		sed -i "23s/$a/$ym_vl_re/" /etc/s-box/sb.json
 		sed -i "27s/$b/$ym_vl_re/" /etc/s-box/sb.json
-		systemctl restart sing-box
+		restartsb
 		blue "设置完毕，请回到主菜单进入选项9更新节点配置"
 	elif [ "$menu" = "2" ]; then
 		if [ -f /root/ygkkkca/ca.log ]; then
@@ -3182,7 +3204,7 @@ changeym() {
 			sed -i "56s#$b#$b_b#" /etc/s-box/sb.json
 			sed -i "57s#$c#$c_c#" /etc/s-box/sb.json
 			sed -i "58s#$d#$d_d#" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			blue "设置完毕，请回到主菜单进入选项9更新节点配置"
 			echo
 			tls=$(jq -r '.inbounds[1].tls.enabled' /etc/s-box/sb.json)
@@ -3206,7 +3228,7 @@ changeym() {
 			fi
 			sed -i "79s#$c#$c_c#" /etc/s-box/sb.json
 			sed -i "80s#$d#$d_d#" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			blue "设置完毕，请回到主菜单进入选项9更新节点配置"
 		else
 			red "当前未申请域名证书，不可切换。主菜单选择12，执行Acme证书申请" && sleep 2 && sb
@@ -3224,7 +3246,7 @@ changeym() {
 			fi
 			sed -i "102s#$c#$c_c#" /etc/s-box/sb.json
 			sed -i "103s#$d#$d_d#" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			blue "设置完毕，请回到主菜单进入选项9更新节点配置"
 		else
 			red "当前未申请域名证书，不可切换。主菜单选择12，执行Acme证书申请" && sleep 2 && sb
@@ -3318,13 +3340,13 @@ changeport() {
 	if [ "$menu" = "1" ]; then
 		vlport
 		sed -i "14s/$vl_port/$port_vl_re/" /etc/s-box/sb.json
-		systemctl restart sing-box
+		restartsb
 		blue "Vless-reality端口更改完成，可选择9输出配置信息"
 		echo
 	elif [ "$menu" = "2" ]; then
 		vmport
 		sed -i "41s/$vm_port/$port_vm_ws/" /etc/s-box/sb.json
-		systemctl restart sing-box
+		restartsb
 		blue "Vmess-ws端口更改完成，可选择9输出配置信息"
 		tls=$(jq -r '.inbounds[1].tls.enabled' /etc/s-box/sb.json)
 		if [[ "$tls" = "false" ]]; then
@@ -3344,12 +3366,12 @@ changeport() {
 				hy2deports
 				hy2port
 				sed -i "67s/$hy2_port/$port_hy2/" /etc/s-box/sb.json
-				systemctl restart sing-box
+				restartsb
 				result_vl_vm_hy_tu && reshy2 && sb_client
 			else
 				hy2port
 				sed -i "67s/$hy2_port/$port_hy2/" /etc/s-box/sb.json
-				systemctl restart sing-box
+				restartsb
 				result_vl_vm_hy_tu && reshy2 && sb_client
 			fi
 		elif [ "$menu" = "2" ]; then
@@ -3387,12 +3409,12 @@ changeport() {
 				tu5deports
 				tu5port
 				sed -i "89s/$tu5_port/$port_tu/" /etc/s-box/sb.json
-				systemctl restart sing-box
+				restartsb
 				result_vl_vm_hy_tu && restu5 && sb_client
 			else
 				tu5port
 				sed -i "89s/$tu5_port/$port_tu/" /etc/s-box/sb.json
-				systemctl restart sing-box
+				restartsb
 				result_vl_vm_hy_tu && restu5 && sb_client
 			fi
 		elif [ "$menu" = "2" ]; then
@@ -3442,7 +3464,7 @@ changeuuid() {
 			uuid=$menu
 		fi
 		sed -i "s/$olduuid/$uuid/g" /etc/s-box/sb.json
-		systemctl restart sing-box
+		restartsb
 		blue "已确认uuid (密码)：${uuid}"
 		blue "已确认Vmess的path路径：$(jq -r '.inbounds[1].transport.path' /etc/s-box/sb.json)"
 	elif [ "$menu" = "2" ]; then
@@ -3452,7 +3474,7 @@ changeuuid() {
 		else
 			vmpath=$menu
 			sed -i "50s#$oldvmpath#$vmpath#g" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 		fi
 		blue "已确认Vmess的path路径：$(jq -r '.inbounds[1].transport.path' /etc/s-box/sb.json)"
 		sbshare
@@ -3466,7 +3488,7 @@ changeip() {
 	chip() {
 		rpip=$(jq -r '.outbounds[0].domain_strategy' /etc/s-box/sb.json)
 		sed -i "111s/$rpip/$rrpip/g" /etc/s-box/sb.json
-		systemctl restart sing-box
+		restartsb
 	}
 	readp "1. IPV4优先\n2. IPV6优先\n3. 仅IPV4\n4. 仅IPV6\n请选择：" choose
 	if [[ $choose == "1" && -n $v4 ]]; then
@@ -3811,7 +3833,7 @@ changewg() {
 			menu=0,0,0
 		fi
 		sed -i "165s/$wgres/$menu/g" /etc/s-box/sb.json
-		systemctl restart sing-box
+		restartsb
 		green "设置结束"
 		green "可以先在选项5-1或5-2使用完整域名分流：cloudflare.com"
 		green "然后使用任意节点打开网页https://cloudflare.com/cdn-cgi/trace，查看当前WARP账户类型"
@@ -3838,7 +3860,7 @@ changewg() {
 		fi
 		sed -i "157s#$wgip#$nwgip#g" /etc/s-box/sb.json
 		sed -i "158s#$wgpo#$nwgpo#g" /etc/s-box/sb.json
-		systemctl restart sing-box
+		restartsb
 		rm -rf /root/result.csv /root/endip.sh
 		echo
 		green "优选完毕，当前使用的对端IP：$nwgip:$nwgpo"
@@ -3989,7 +4011,7 @@ changef() {
 				w4flym="\"$w4flym\""
 			fi
 			sed -i "184s/.*/$w4flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		elif [ "$menu" = "2" ]; then
 			readp "每个域名之间留空格，回车跳过表示重置清空warp-wireguard-ipv4的geosite方式的分流通道)：" w4flym
@@ -4000,7 +4022,7 @@ changef() {
 				w4flym="\"$w4flym\""
 			fi
 			sed -i "187s/.*/$w4flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		else
 			changef
@@ -4017,7 +4039,7 @@ changef() {
 				w6flym="\"$w6flym\""
 			fi
 			sed -i "193s/.*/$w6flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		elif [ "$menu" = "2" ]; then
 			readp "每个域名之间留空格，回车跳过表示重置清空warp-wireguard-ipv6的geosite方式的分流通道：" w6flym
@@ -4028,7 +4050,7 @@ changef() {
 				w6flym="\"$w6flym\""
 			fi
 			sed -i "196s/.*/$w6flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		else
 			changef
@@ -4045,7 +4067,7 @@ changef() {
 				s4flym="\"$s4flym\""
 			fi
 			sed -i "202s/.*/$s4flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		elif [ "$menu" = "2" ]; then
 			readp "每个域名之间留空格，回车跳过表示重置清空warp-socks5-ipv4的geosite方式的分流通道：" s4flym
@@ -4056,7 +4078,7 @@ changef() {
 				s4flym="\"$s4flym\""
 			fi
 			sed -i "205s/.*/$s4flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		else
 			changef
@@ -4073,7 +4095,7 @@ changef() {
 				s6flym="\"$s6flym\""
 			fi
 			sed -i "211s/.*/$s6flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		elif [ "$menu" = "2" ]; then
 			readp "每个域名之间留空格，回车跳过表示重置清空warp-socks5-ipv6的geosite方式的分流通道：" s6flym
@@ -4084,7 +4106,7 @@ changef() {
 				s6flym="\"$s6flym\""
 			fi
 			sed -i "214s/.*/$s6flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		else
 			changef
@@ -4101,7 +4123,7 @@ changef() {
 				ad4flym="\"$ad4flym\""
 			fi
 			sed -i "220s/.*/$ad4flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		elif [ "$menu" = "2" ]; then
 			readp "每个域名之间留空格，回车跳过表示重置清空VPS本地ipv4的geosite方式的分流通道：" ad4flym
@@ -4112,7 +4134,7 @@ changef() {
 				ad4flym="\"$ad4flym\""
 			fi
 			sed -i "223s/.*/$ad4flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		else
 			changef
@@ -4129,7 +4151,7 @@ changef() {
 				ad6flym="\"$ad6flym\""
 			fi
 			sed -i "229s/.*/$ad6flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		elif [ "$menu" = "2" ]; then
 			readp "每个域名之间留空格，回车跳过表示重置清空VPS本地ipv6的geosite方式的分流通道：" ad6flym
@@ -4140,7 +4162,7 @@ changef() {
 				ad6flym="\"$ad6flym\""
 			fi
 			sed -i "232s/.*/$ad6flym/" /etc/s-box/sb.json
-			systemctl restart sing-box
+			restartsb
 			changef
 		else
 			changef
@@ -4150,20 +4172,32 @@ changef() {
 	fi
 }
 
+restartsb() {
+	if [[ x"${release}" == x"alpine" ]]; then
+		rc-service sing-box restart
+	else
+		systemctl enable sing-box
+		systemctl start sing-box
+		systemctl restart sing-box
+	fi
+}
+
 stclre() {
 	if [[ ! -f '/etc/s-box/sb.json' ]]; then
 		red "未正常安装Sing-box" && exit
 	fi
 	readp "1：重启\n2：关闭\n请选择：" menu
 	if [ "$menu" = "1" ]; then
-		systemctl enable sing-box
-		systemctl start sing-box
-		systemctl restart sing-box
+		restartsb
 		sbactive
 		green "Sing-box服务已重启\n" && sleep 3 && sb
 	elif [ "$menu" = "2" ]; then
-		systemctl stop sing-box
-		systemctl disable sing-box
+		if [[ x"${release}" == x"alpine" ]]; then
+			rc-service sing-box stop
+		else
+			systemctl stop sing-box
+			systemctl disable sing-box
+		fi
 		green "Sing-box服务已关闭\n" && sleep 3 && sb
 	else
 		stclre
@@ -4173,7 +4207,7 @@ stclre() {
 cronsb() {
 	uncronsb
 	crontab -l >/tmp/crontab.tmp
-	echo "0 1 * * * systemctl restart sing-box" >>/tmp/crontab.tmp
+	echo "0 1 * * * systemctl restart sing-box;rc-service sing-box restart" >>/tmp/crontab.tmp
 	crontab /tmp/crontab.tmp
 	rm /tmp/crontab.tmp
 }
@@ -4239,7 +4273,7 @@ upsbcroe() {
 			if [[ -f '/etc/s-box/sing-box' ]]; then
 				chown root:root /etc/s-box/sing-box
 				chmod +x /etc/s-box/sing-box
-				systemctl restart sing-box
+				restartsb
 				blue "成功升级/切换 Sing-box 内核版本：$(/etc/s-box/sing-box version | awk '/version/{print $NF}')" && sleep 3 && sb
 			else
 				red "下载 Sing-box 内核不完整，安装失败，请重试" && upsbcroe
@@ -4253,11 +4287,17 @@ upsbcroe() {
 }
 
 unins() {
-	systemctl stop sing-box >/dev/null 2>&1
-	systemctl disable sing-box >/dev/null 2>&1
+	if [[ x"${release}" == x"alpine" ]]; then
+		rc-service sing-box stop
+		rc-update del sing-box default
+		rm /etc/init.d/sing-box -f
+	else
+		systemctl stop sing-box >/dev/null 2>&1
+		systemctl disable sing-box >/dev/null 2>&1
+		rm -f /etc/systemd/system/sing-box.service
+	fi
 	kill -15 $(cat /etc/s-box/sbargopid.log 2>/dev/null) >/dev/null 2>&1
 	kill -15 $(cat /etc/s-box/sbargoympid.log 2>/dev/null) >/dev/null 2>&1
-	rm -f /etc/systemd/system/sing-box.service
 	rm -rf /etc/s-box sbyg_update /usr/bin/sb /root/geoip.db /root/geosite.db /root/warpapi /root/sb.sh /root/warpip
 	uncronsb
 	iptables -t nat -F PREROUTING >/dev/null 2>&1
@@ -4270,8 +4310,12 @@ unins() {
 
 sblog() {
 	red "退出日志 Ctrl+c"
-	#systemctl status sing-box
-	journalctl -u sing-box.service -o cat -f
+	if [[ x"${release}" == x"alpine" ]]; then
+		yellow "暂不支持alpine查看日志"
+	else
+		#systemctl status sing-box
+		journalctl -u sing-box.service -o cat -f
+	fi
 }
 
 sbactive() {
