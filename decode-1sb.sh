@@ -310,7 +310,7 @@ inscertificate() {
 
 chooseport() {
 	if [[ -z $port ]]; then
-		port=$(shuf -i 2000-65535 -n 1)
+		port=$(shuf -i 10000-65535 -n 1)
 		until [[ -z $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") && -z $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]]; do
 			[[ -n $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") || -n $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]] && yellow "\n端口被占用，请重新输入端口" && readp "自定义端口:" port
 		done
@@ -323,22 +323,22 @@ chooseport() {
 }
 
 vlport() {
-	readp "\n设置Vless-reality端口[1-65535] (回车跳过为2000-65535之间的随机端口)：" port
+	readp "\n设置Vless-reality端口[1-65535] (回车跳过为10000-65535之间的随机端口)：" port
 	chooseport
 	port_vl_re=$port
 }
 vmport() {
-	readp "\n设置Vmess-ws端口[1-65535] (回车跳过为2000-65535之间的随机端口)：" port
+	readp "\n设置Vmess-ws端口[1-65535] (回车跳过为10000-65535之间的随机端口)：" port
 	chooseport
 	port_vm_ws=$port
 }
 hy2port() {
-	readp "\n设置Hysteria2主端口[1-65535] (回车跳过为2000-65535之间的随机端口)：" port
+	readp "\n设置Hysteria2主端口[1-65535] (回车跳过为10000-65535之间的随机端口)：" port
 	chooseport
 	port_hy2=$port
 }
 tu5port() {
-	readp "\n设置Tuic5主端口[1-65535] (回车跳过为2000-65535之间的随机端口)：" port
+	readp "\n设置Tuic5主端口[1-65535] (回车跳过为10000-65535之间的随机端口)：" port
 	chooseport
 	port_tu=$port
 }
@@ -346,14 +346,14 @@ tu5port() {
 insport() {
 	red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	green "三、设置各个协议端口"
-	yellow "1：自动生成每个协议的随机端口 (2000-65535范围内)，回车默认"
+	yellow "1：自动生成每个协议的随机端口 (10000-65535范围内)，回车默认"
 	yellow "2：自定义每个协议端口"
 	readp "请输入【1-2】：" port
 	if [ -z "$port" ] || [ "$port" = "1" ]; then
 		ports=()
 		for i in {1..4}; do
 			while true; do
-				port=$(shuf -i 2000-65535 -n 1)
+				port=$(shuf -i 10000-65535 -n 1)
 				if ! [[ " ${ports[@]} " =~ " $port " ]] &&
 					[[ -z $(ss -tunlp | grep -w tcp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]] &&
 					[[ -z $(ss -tunlp | grep -w udp | awk '{print $5}' | sed 's/.*://g' | grep -w "$port") ]]; then
@@ -4592,12 +4592,22 @@ echo -e "本地IPV4地址：$blue$vps_ipv4$w4$plain   本地IPV6地址：$blue$v
 if [[ -n $rpip ]]; then
 	echo -e "代理IP优先级：$blue$v4_6$plain"
 fi
-if [[ -n $(systemctl status sing-box 2>/dev/null | grep -w active) && -f '/etc/s-box/sb.json' ]]; then
-	echo -e "Sing-box状态：$blue运行中$plain"
-elif [[ -z $(systemctl status sing-box 2>/dev/null | grep -w active) && -f '/etc/s-box/sb.json' ]]; then
-	echo -e "Sing-box状态：$yellow未启动，选择10查看日志并反馈，建议卸载重装Sing-box-yg脚本$plain"
+if [[ x"${release}" == x"alpine" ]]; then
+	if [[ -n $(rc-service sing-box status | grep -w "started") && -f '/etc/s-box/sb.json' ]]; then
+		echo -e "Sing-box状态：$blue运行中$plain"
+	elif [[ -z $(rc-service sing-box status | grep -w "started") && -f '/etc/s-box/sb.json' ]]; then
+		echo -e "Sing-box状态：$yellow未启动，选择10查看日志并反馈，建议卸载重装Sing-box-yg脚本$plain"
+	else
+		echo -e "Sing-box状态：$red未安装$plain"
+	fi
 else
-	echo -e "Sing-box状态：$red未安装$plain"
+	if [[ -n $(systemctl status sing-box 2>/dev/null | grep -w active) && -f '/etc/s-box/sb.json' ]]; then
+		echo -e "Sing-box状态：$blue运行中$plain"
+	elif [[ -z $(systemctl status sing-box 2>/dev/null | grep -w active) && -f '/etc/s-box/sb.json' ]]; then
+		echo -e "Sing-box状态：$yellow未启动，选择10查看日志并反馈，建议卸载重装Sing-box-yg脚本$plain"
+	else
+		echo -e "Sing-box状态：$red未安装$plain"
+	fi
 fi
 red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 if [ -f '/etc/s-box/sb.json' ]; then
