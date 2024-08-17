@@ -98,8 +98,8 @@ if [ ! -f sbyg_update ]; then
 			apt install iputils-ping iproute2 systemctl -y
 		fi
 
-		packages=("curl" "openssl" "iptables" "tar" "expect" "wget" "qrencode" "git" "cron")
-		inspackages=("curl" "openssl" "iptables" "tar" "expect" "wget" "qrencode" "git" "cron")
+		packages=("curl" "openssl" "iptables" "tar" "expect" "wget" "xxd" "python3" "qrencode" "git" "cron")
+		inspackages=("curl" "openssl" "iptables" "tar" "expect" "wget" "xxd" "python3" "qrencode" "git" "cron")
 		for i in "${!packages[@]}"; do
 			package="${packages[$i]}"
 			inspackage="${inspackages[$i]}"
@@ -3046,7 +3046,7 @@ cfargoym() {
 		fi
 		echo
 		if [[ -n "${argotoken}" && -n "${argoym}" ]]; then
-			nohup setsid /etc/s-box/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token ${argotoken} >/dev/null 2>&1 &
+			nohup setsid /etc/s-box/cloudflared tunnel --no-autoupdate --edge-ip-version auto --protocol http2 run --token ${argotoken} >/dev/null 2>&1 &
 			echo "$!" >/etc/s-box/sbargoympid.log
 			sleep 20
 		fi
@@ -3054,7 +3054,7 @@ cfargoym() {
 		echo ${argotoken} >/etc/s-box/sbargotoken.log
 		crontab -l >/tmp/crontab.tmp
 		sed -i '/sbargoympid/d' /tmp/crontab.tmp
-		echo '@reboot /bin/bash -c "nohup setsid /etc/s-box/cloudflared tunnel --no-autoupdate --edge-ip-version auto run --token $(cat /etc/s-box/sbargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargoympid.log"' >>/tmp/crontab.tmp
+		echo '@reboot /bin/bash -c "nohup setsid /etc/s-box/cloudflared tunnel --no-autoupdate --edge-ip-version auto --protocol http2 run --token $(cat /etc/s-box/sbargotoken.log 2>/dev/null) >/dev/null 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargoympid.log"' >>/tmp/crontab.tmp
 		crontab /tmp/crontab.tmp
 		rm /tmp/crontab.tmp
 		argo=$(cat /etc/s-box/sbargoym.log 2>/dev/null)
@@ -3087,7 +3087,7 @@ cfargo() {
 			if [[ -n $(ps -e | grep cloudflared) ]]; then
 				kill -15 $(cat /etc/s-box/sbargopid.log 2>/dev/null) >/dev/null 2>&1
 			fi
-			/etc/s-box/cloudflared tunnel --url http://localhost:$(jq -r '.inbounds[1].listen_port' /etc/s-box/sb.json) --edge-ip-version auto --no-autoupdate >/etc/s-box/argo.log 2>&1 &
+			/etc/s-box/cloudflared tunnel --url http://localhost:$(jq -r '.inbounds[1].listen_port' /etc/s-box/sb.json) --edge-ip-version auto --no-autoupdate --protocol http2 >/etc/s-box/argo.log 2>&1 &
 			echo "$!" >/etc/s-box/sbargopid.log
 			sleep 20
 			if [[ -n $(curl -sL https://$(cat /etc/s-box/argo.log 2>/dev/null | grep -a trycloudflare.com | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')/ -I | awk 'NR==1 && /404|400|503/') ]]; then
@@ -3102,7 +3102,7 @@ cfargo() {
 		done
 		crontab -l >/tmp/crontab.tmp
 		sed -i '/sbargopid/d' /tmp/crontab.tmp
-		echo '@reboot /bin/bash -c "/etc/s-box/cloudflared tunnel --url http://localhost:$(jq -r '.inbounds[1].listen_port' /etc/s-box/sb.json) --edge-ip-version auto --no-autoupdate > /etc/s-box/argo.log 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargopid.log"' >>/tmp/crontab.tmp
+		echo '@reboot /bin/bash -c "/etc/s-box/cloudflared tunnel --url http://localhost:$(jq -r '.inbounds[1].listen_port' /etc/s-box/sb.json) --edge-ip-version auto --no-autoupdate --protocol http2 > /etc/s-box/argo.log 2>&1 & pid=\$! && echo \$pid > /etc/s-box/sbargopid.log"' >>/tmp/crontab.tmp
 		crontab /tmp/crontab.tmp
 		rm /tmp/crontab.tmp
 	elif [ "$menu" = "2" ]; then
@@ -3787,19 +3787,46 @@ clsbshow() {
 }
 
 warpwg() {
-	bit=$(uname -m)
-	[[ $bit = "aarch64" ]] && cpu="arm64" || cpu="amd64"
-	curl -L -o warpapi -# --retry 2 https://gitlab.com/rwkgyg/CFwarp/-/raw/main/point/cpu1/$cpu
-	chmod +x warpapi
-	output=$(./warpapi)
-	if ./warpapi 2>&1 | grep -q "connection refused\|invalid"; then
-		v6=2606:4700:110:832a:4a0:11e7:4a5d:4b54
-		pvk=4J3mgmNvWnRdfUcCC+jYxsWd3yaTKVo2ygPLBAw8t0M=
-		res=[212,142,104]
+	warpcode() {
+		reg() {
+			keypair=$(openssl genpkey -algorithm X25519 | openssl pkey -text -noout)
+			private_key=$(echo "$keypair" | awk '/priv:/{flag=1; next} /pub:/{flag=0} flag' | tr -d '[:space:]' | xxd -r -p | base64)
+			public_key=$(echo "$keypair" | awk '/pub:/{flag=1} flag' | tr -d '[:space:]' | xxd -r -p | base64)
+			curl -X POST 'https://api.cloudflareclient.com/v0a2158/reg' -sL --tlsv1.3 \
+				-H 'CF-Client-Version: a-7.21-0721' -H 'Content-Type: application/json' \
+				-d \
+				'{
+"key":"'${public_key}'",
+"tos":"'$(date +"%Y-%m-%dT%H:%M:%S.000Z")'"
+}' |
+				python3 -m json.tool | sed "/\"account_type\"/i\         \"private_key\": \"$private_key\","
+		}
+		reserved() {
+			reserved_str=$(echo "$warp_info" | grep 'client_id' | cut -d\" -f4)
+			reserved_hex=$(echo "$reserved_str" | base64 -d | xxd -p)
+			reserved_dec=$(echo "$reserved_hex" | fold -w2 | while read HEX; do printf '%d ' "0x${HEX}"; done | awk '{print "["$1", "$2", "$3"]"}')
+			echo -e "{\n    \"reserved_dec\": $reserved_dec,"
+			echo -e "    \"reserved_hex\": \"0x$reserved_hex\","
+			echo -e "    \"reserved_str\": \"$reserved_str\"\n}"
+		}
+		result() {
+			echo "$warp_reserved" | grep -P "reserved" | sed "s/ //g" | sed 's/:"/: "/g' | sed 's/:\[/: \[/g' | sed 's/\([0-9]\+\),\([0-9]\+\),\([0-9]\+\)/\1, \2, \3/' | sed 's/^"/    "/g' | sed 's/"$/",/g'
+			echo "$warp_info" | grep -P "(private_key|public_key|\"v4\": \"172.16.0.2\"|\"v6\": \"2)" | sed "s/ //g" | sed 's/:"/: "/g' | sed 's/^"/    "/g'
+			echo "}"
+		}
+		warp_info=$(reg)
+		warp_reserved=$(reserved)
+		result
+	}
+	output=$(warpcode)
+	if ! echo "$output" 2>/dev/null | grep -w "private_key" >/dev/null; then
+		v6=2606:4700:110:8f20:f22e:2c8d:d8ee:fe7
+		pvk=SGU6hx3CJAWGMr6XYoChvnrKV61hxAw2S4VlgBAxzFs=
+		res=[15,242,244]
 	else
-		pvk=$(echo "$output" | awk -F ': ' '/private_key/{print $2}')
-		v6=$(echo "$output" | awk -F ': ' '/v6/{print $2}')
-		res=$(echo "$output" | awk -F ': ' '/reserved/{print $2}' | tr -d '[:space:]')
+		pvk=$(echo "$output" | sed -n 4p | awk '{print $2}' | tr -d ' "' | sed 's/.$//')
+		v6=$(echo "$output" | sed -n 7p | awk '{print $2}' | tr -d ' "')
+		res=$(echo "$output" | sed -n 1p | awk -F":" '{print $NF}' | tr -d ' ' | sed 's/.$//')
 	fi
 	blue "Private_key私钥：$pvk"
 	blue "IPV6地址：$v6"
@@ -4593,21 +4620,18 @@ if [[ -n $rpip ]]; then
 	echo -e "代理IP优先级：$blue$v4_6$plain"
 fi
 if [[ x"${release}" == x"alpine" ]]; then
-	if [[ -n $(rc-service sing-box status | grep -w "started") && -f '/etc/s-box/sb.json' ]]; then
-		echo -e "Sing-box状态：$blue运行中$plain"
-	elif [[ -z $(rc-service sing-box status | grep -w "started") && -f '/etc/s-box/sb.json' ]]; then
-		echo -e "Sing-box状态：$yellow未启动，选择10查看日志并反馈，建议卸载重装Sing-box-yg脚本$plain"
-	else
-		echo -e "Sing-box状态：$red未安装$plain"
-	fi
+	status_cmd="rc-service sing-box status"
+	status_pattern="started"
 else
-	if [[ -n $(systemctl status sing-box 2>/dev/null | grep -w active) && -f '/etc/s-box/sb.json' ]]; then
-		echo -e "Sing-box状态：$blue运行中$plain"
-	elif [[ -z $(systemctl status sing-box 2>/dev/null | grep -w active) && -f '/etc/s-box/sb.json' ]]; then
-		echo -e "Sing-box状态：$yellow未启动，选择10查看日志并反馈，建议卸载重装Sing-box-yg脚本$plain"
-	else
-		echo -e "Sing-box状态：$red未安装$plain"
-	fi
+	status_cmd="systemctl status sing-box"
+	status_pattern="active"
+fi
+if [[ -n $($status_cmd 2>/dev/null | grep -w "$status_pattern") && -f '/etc/s-box/sb.json' ]]; then
+	echo -e "Sing-box状态：$blue运行中$plain"
+elif [[ -z $($status_cmd 2>/dev/null | grep -w "$status_pattern") && -f '/etc/s-box/sb.json' ]]; then
+	echo -e "Sing-box状态：$yellow未启动，选择10查看日志并反馈，建议卸载重装Sing-box-yg脚本$plain"
+else
+	echo -e "Sing-box状态：$red未安装$plain"
 fi
 red "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 if [ -f '/etc/s-box/sb.json' ]; then
