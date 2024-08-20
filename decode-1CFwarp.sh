@@ -2204,6 +2204,7 @@ startCFwarp() {
 	yellow " 二、安装WARP脚本（选项2与3）"
 	yellow " 作用：有机率全局解锁 Netflix 与 ChatGPT"
 	yellow " 提示：在使用支持WARP出站的代理脚本时，不建议再安装warp脚本"
+	yellow " 提示：wgcf与warp-go随意选择，哪个能装用哪个"
 	echo "-------------------------------------------------------------------"
 	green " 1. 生成并提取WARP-Wireguard节点配置文件、二维码"
 	green " 2. 选择 wgcf    方案进入WARP安装菜单"
