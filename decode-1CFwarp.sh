@@ -2111,8 +2111,8 @@ checkyl() {
 }
 
 warpyl() {
-	packages=("curl" "openssl" "bc" "python3" "screen" "qrencode" "wget" "cron")
-	inspackages=("curl" "openssl" "bc" "python3" "screen" "qrencode" "wget" "cron")
+	packages=("curl" "openssl" "bc" "python3" "screen" "qrencode" "wget")
+	inspackages=("curl" "openssl" "bc" "python3" "screen" "qrencode" "wget")
 	for i in "${!packages[@]}"; do
 		package="${packages[$i]}"
 		inspackage="${inspackages[$i]}"
