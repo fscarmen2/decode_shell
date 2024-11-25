@@ -7,7 +7,8 @@ on:
 
 env:
   PREFIX: decode
-  ACTOR: ${{ secrets.ACTOR }}
+  GL_ACTOR: ${{ secrets.ACTOR }}
+  GH_ACTOR: ${{ secrets.GH_ACTOR }}
 
 jobs:
   build:
@@ -19,13 +20,12 @@ jobs:
       - uses: actions/checkout@v4.1.6
       - name: Compare Files
         run: |
-          ORIGIN_FILE[0]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/1CFwarp.sh
-          ORIGIN_FILE[1]=https://gitlab.com/$ACTOR/sing-box-yg/-/raw/main/1sb.sh
-          ORIGIN_FILE[2]=https://gitlab.com/$ACTOR/x-ui-yg/-/raw/main/install.sh
-          ORIGIN_FILE[3]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/point/acwarp.sh
-          ORIGIN_FILE[4]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/point/2cfip.sh
-          ORIGIN_FILE[5]=https://gitlab.com/$ACTOR/CFwarp/-/raw/main/point/2endip.sh
-          
+          ORIGIN_FILE[0]=https://gitlab.com/$GL_ACTOR/CFwarp/-/raw/main/1CFwarp.sh
+          ORIGIN_FILE[1]=https://raw.githubusercontent.com/$GH_ACTOR/sing-box-yg/refs/heads/main/sb.sh
+          ORIGIN_FILE[2]=https://gitlab.com/$GL_ACTOR/x-ui-yg/-/raw/main/install.sh
+          ORIGIN_FILE[3]=https://gitlab.com/$GL_ACTOR/CFwarp/-/raw/main/point/acwarp.sh
+          ORIGIN_FILE[4]=https://gitlab.com/$GL_ACTOR/CFwarp/-/raw/main/point/2cfip.sh
+          ORIGIN_FILE[5]=https://gitlab.com/$GL_ACTOR/CFwarp/-/raw/main/point/2endip.sh
 
           for FULL_PATH in ${ORIGIN_FILE[*]}; do
             unset FILE NOW LATEST
