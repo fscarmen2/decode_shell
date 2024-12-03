@@ -644,7 +644,7 @@ SOCKS5ins() {
 	if [[ $release = Centos ]]; then
 		[[ ! ${vsid} =~ 8 ]] && yellow "当前系统版本号：Centos $vsid \nSocks5-WARP仅支持Centos 8 " && exit
 	elif [[ $release = Ubuntu ]]; then
-		[[ ! ${vsid} =~ 20|22 ]] && yellow "当前系统版本号：Ubuntu $vsid \nSocks5-WARP仅支持 Ubuntu 20.04/22.04系统 " && exit
+		[[ ! ${vsid} =~ 20|22|24 ]] && yellow "当前系统版本号：Ubuntu $vsid \nSocks5-WARP仅支持 Ubuntu 20.04/22.04/24.04系统 " && exit
 	elif [[ $release = Debian ]]; then
 		[[ ! ${vsid} =~ 10|11|12 ]] && yellow "当前系统版本号：Debian $vsid \nSocks5-WARP仅支持 Debian 10/11/12系统 " && exit
 	fi
@@ -688,7 +688,7 @@ SOCKS5ins() {
 	if [[ $release != Centos ]]; then
 		apt install net-tools -y
 		curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-		echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] http://pkg.cloudflareclient.com/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
+		echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/cloudflare-client.list
 		apt update
 		apt install cloudflare-warp -y
 	fi
