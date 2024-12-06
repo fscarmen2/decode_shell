@@ -1273,11 +1273,6 @@ sb_client() {
       "action": "sniff"
       },
       {
-      "port": 853,
-      "network": "tcp",
-      "action": "reject"
-      },
-      {
       "protocol": "dns",
       "action": "hijack-dns"
       },
@@ -1828,11 +1823,6 @@ EOF
       "action": "sniff"
       },
       {
-      "port": 853,
-      "network": "tcp",
-      "action": "reject"
-      },
-      {
       "protocol": "dns",
       "action": "hijack-dns"
       },
@@ -2352,11 +2342,6 @@ EOF
       "action": "sniff"
       },
       {
-      "port": 853,
-      "network": "tcp",
-      "action": "reject"
-      },
-      {
       "protocol": "dns",
       "action": "hijack-dns"
       },
@@ -2814,11 +2799,6 @@ EOF
       {
       "inbound": "tun-in",
       "action": "sniff"
-      },
-      {
-      "port": 853,
-      "network": "tcp",
-      "action": "reject"
       },
       {
       "protocol": "dns",
