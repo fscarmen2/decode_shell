@@ -949,10 +949,6 @@ cat > /etc/s-box/sing_box_client.json <<EOF
                 "detour": "direct"
             },
             {
-                "address": "rcode://refused",
-                "tag": "block"
-            },
-            {
                 "tag": "dns_fakeip",
                 "address": "fakeip"
             }
@@ -999,6 +995,7 @@ cat > /etc/s-box/sing_box_client.json <<EOF
       "inbounds": [
     {
       "type": "tun",
+           "tag": "tun-in",
 	  "address": [
       "172.19.0.1/30",
 	  "fd00::1/126"
@@ -1275,8 +1272,22 @@ cat > /etc/s-box/sing_box_client.json <<EOF
     "final": "select",
     "rules": [
       {
-        "outbound": "dns-out",
-        "protocol": "dns"
+      "inbound": "tun-in",
+      "action": "sniff"
+      },
+      {
+      "port": 853,
+      "network": "tcp",
+      "action": "reject"
+      },
+      {
+      "protocol": "dns",
+      "action": "hijack-dns"
+      },
+      {
+      "port": 443,
+      "network": "udp",
+      "action": "reject"
       },
       {
         "clash_mode": "Direct",
@@ -1552,10 +1563,6 @@ cat > /etc/s-box/sing_box_client.json <<EOF
                 "detour": "direct"
             },
             {
-                "address": "rcode://refused",
-                "tag": "block"
-            },
-            {
                 "tag": "dns_fakeip",
                 "address": "fakeip"
             }
@@ -1602,6 +1609,7 @@ cat > /etc/s-box/sing_box_client.json <<EOF
       "inbounds": [
     {
       "type": "tun",
+           "tag": "tun-in",
 	  "address": [
       "172.19.0.1/30",
 	  "fd00::1/126"
@@ -1820,8 +1828,22 @@ cat > /etc/s-box/sing_box_client.json <<EOF
     "final": "select",
     "rules": [
       {
-        "outbound": "dns-out",
-        "protocol": "dns"
+      "inbound": "tun-in",
+      "action": "sniff"
+      },
+      {
+      "port": 853,
+      "network": "tcp",
+      "action": "reject"
+      },
+      {
+      "protocol": "dns",
+      "action": "hijack-dns"
+      },
+      {
+      "port": 443,
+      "network": "udp",
+      "action": "reject"
       },
       {
         "clash_mode": "Direct",
@@ -2065,10 +2087,6 @@ cat > /etc/s-box/sing_box_client.json <<EOF
                 "detour": "direct"
             },
             {
-                "address": "rcode://refused",
-                "tag": "block"
-            },
-            {
                 "tag": "dns_fakeip",
                 "address": "fakeip"
             }
@@ -2115,6 +2133,7 @@ cat > /etc/s-box/sing_box_client.json <<EOF
       "inbounds": [
     {
       "type": "tun",
+     "tag": "tun-in",
 	  "address": [
       "172.19.0.1/30",
 	  "fd00::1/126"
@@ -2333,8 +2352,22 @@ cat > /etc/s-box/sing_box_client.json <<EOF
     "final": "select",
     "rules": [
       {
-        "outbound": "dns-out",
-        "protocol": "dns"
+      "inbound": "tun-in",
+      "action": "sniff"
+      },
+      {
+      "port": 853,
+      "network": "tcp",
+      "action": "reject"
+      },
+      {
+      "protocol": "dns",
+      "action": "hijack-dns"
+      },
+      {
+      "port": 443,
+      "network": "udp",
+      "action": "reject"
       },
       {
         "clash_mode": "Direct",
@@ -2576,10 +2609,6 @@ cat > /etc/s-box/sing_box_client.json <<EOF
                 "detour": "direct"
             },
             {
-                "address": "rcode://refused",
-                "tag": "block"
-            },
-            {
                 "tag": "dns_fakeip",
                 "address": "fakeip"
             }
@@ -2626,6 +2655,7 @@ cat > /etc/s-box/sing_box_client.json <<EOF
       "inbounds": [
     {
       "type": "tun",
+     "tag": "tun-in",
 	  "address": [
       "172.19.0.1/30",
 	  "fd00::1/126"
@@ -2786,8 +2816,22 @@ cat > /etc/s-box/sing_box_client.json <<EOF
     "final": "select",
     "rules": [
       {
-        "outbound": "dns-out",
-        "protocol": "dns"
+      "inbound": "tun-in",
+      "action": "sniff"
+      },
+      {
+      "port": 853,
+      "network": "tcp",
+      "action": "reject"
+      },
+      {
+      "protocol": "dns",
+      "action": "hijack-dns"
+      },
+      {
+      "port": 443,
+      "network": "udp",
+      "action": "reject"
       },
       {
         "clash_mode": "Direct",
