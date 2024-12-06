@@ -1223,14 +1223,6 @@ sb_client() {
       "type": "direct"
     },
     {
-      "tag": "block",
-      "type": "block"
-    },
-    {
-      "tag": "dns-out",
-      "type": "dns"
-    },
-    {
       "tag": "auto",
       "type": "urltest",
       "outbounds": [
@@ -1777,14 +1769,6 @@ EOF
       "type": "direct"
     },
     {
-      "tag": "block",
-      "type": "block"
-    },
-    {
-      "tag": "dns-out",
-      "type": "dns"
-    },
-    {
       "tag": "auto",
       "type": "urltest",
       "outbounds": [
@@ -2298,14 +2282,6 @@ EOF
       "type": "direct"
     },
     {
-      "tag": "block",
-      "type": "block"
-    },
-    {
-      "tag": "dns-out",
-      "type": "dns"
-    },
-    {
       "tag": "auto",
       "type": "urltest",
       "outbounds": [
@@ -2759,14 +2735,6 @@ EOF
     {
       "tag": "direct",
       "type": "direct"
-    },
-    {
-      "tag": "block",
-      "type": "block"
-    },
-    {
-      "tag": "dns-out",
-      "type": "dns"
     },
     {
       "tag": "auto",
